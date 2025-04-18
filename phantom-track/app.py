@@ -165,8 +165,14 @@ def generate(track_paths: List[str], prompt: str, duration: int = 30,
             cfg_coef=classifier_free_guidance
         )
         
-        # 条件付き生成（メロディと説明）
-        wav = model.generate_with_chroma([prompt], reference_audio.unsqueeze(0), progress=True)
+        # 条件付き生成（メロディと説明） - melody_sample_rate を追加
+        # reference_audio は混合されたものなので、そのサンプルレート sr を使用
+        wav = model.generate_with_chroma(
+            descriptions=[prompt], 
+            melody_wavs=reference_audio.unsqueeze(0), # バッチ次元を追加
+            melody_sample_rate=sr, # <--- 読み込んだサンプルレートを追加
+            progress=True
+        )
         
         # 生成した音声を保存
         output_filename = f"phantom_track_{int(time.time())}"
@@ -175,8 +181,10 @@ def generate(track_paths: List[str], prompt: str, duration: int = 30,
         
         return f"{output_path}.wav"
     except Exception as e:
-        print(f"生成エラー: {e}")
-        return f"音楽生成中にエラーが発生しました: {str(e)}"
+        error_message = f"音楽生成中にエラーが発生しました: {str(e)}"
+        print(f"生成エラー: {traceback.format_exc()}") # 詳細なトレースバックを出力
+        # return error_message # 文字列を返す代わりに Gradio エラーを発生させる
+        raise gr.Error(error_message)
 
 # Gradio インターフェース
 def create_ui():
